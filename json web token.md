@@ -36,17 +36,20 @@ Stateful 서버는 클라이언트에게서 요청을 받을 때 마다, 클라�
 
 - ### CORS (Cross-Origin Resource Sharing)
 
-먼저 CORS란, 처음 전송되는 리소스의 도메인과 다른 도메인으로부터 리소스가 요청될 경우 해당 리소스는 cross-origin http 요청에 의해 요청됩니다.  
+먼저 CORS란, 처음 전송되는 리소스의 도메인과 다른 도메인으로부터 리소스가 요청될 경우 해당 리소스는 cross-origin http 요청에 의해 요청됩니다.   
+cors에 대한 더 자세한 내용은     
 
-웹 어플리케이션에서 세션을 관리 할 때 자주 사용되는 쿠키는 단일 도메인 및 서브 도메인에서만 작동하도록 설계되어있습니다.   
+https://github.com/miraedbswo/writings/blob/master/cors.md
+
+- 웹 어플리케이션에서 세션을 관리 할 때 자주 사용되는 쿠키는 단일 도메인 및 서브 도메인에서만 작동하도록 설계되어있습니다. 
 따라서 쿠키를 여러 도메인에서 관리하는것은 굉장히 번거롭습니다.   
-<br></br>
+ ------------------------------------------
 이러한 이유로 Stateless한 서버를 만들기 위해,   
 확장성을 갖춘 서버를 만들기 위해,   
 Cross-Origin 요청을 위해.   
 많은 사람들은 Token 인증 방식을 택합니다. 
-# JWT ( Json Web Token )
 
+# JWT ( Json Web Token )
 ## json web token 이란 뭘까 ?
 - Json Web Token 은 두 객체에서 JSON을 사용하여 가볍고 자가수용적인(self-contained) 방식으로 정보를 안전성 있게 전달할 수 있다.
 
@@ -64,7 +67,62 @@ JWT는 자가 수용적이므로, 손 쉽게 전달할 수 있다.
 - 정보가 sign 되어 있기 때문에, 정보가 조작되었는지는 않았는지, 검증할 수 있다.
 
 # JWT 의 생김새
-JWT는 3가지의 문자열로 되어있다.
+JWT는 ```.```을 기준으로 3가지의 문자열로 되어있다.
+- aaaaaa.bbbbbb.cccccc
+
+각 문자열은 어떤 의미인지, 어떤 내용을 포함 하고 있는지 알아보자.
+
+## Header 
+Header는 ```.```을 기준으로 맨 처음에 위치하고 있으며, 두 가지의 정보를 지니고 있습니다.
+- ### typ
+토큰의 타입을 지정합니다. JWT 이죠.
+- ### alg
+해싱 알고리즘을 지정합니다.  
+ 해싱 알고리즘으로는 보통 HMAC SHA256 혹은 RSA 가 사용되며, 이 알고리즘은, 토큰을 검증 할 때 사용되는 signature 부분에서 사용됩니다.
+
+ ```py
+ header = {"alg":"HS256","typ":"JWT"}
+ result = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9" # example
+ ```
+
+## Payload
+ Header는 ```.```을 기준으로 중간에 위치하고 있습니다.   
+
+ Payload 부분에는 토큰에 담을 정보가 들어있습니다.    
+ 여기에 담는 정보의 한 ‘조각’ 을 클레임(claim) 이라고 부르고, 이는 name / value 의 한 쌍으로 이뤄져있습니다.    
+ 토큰에는 여러개의 클레임 들을 넣을 수 있습니다.
+
+ - 클레임의 종류는 3가지 입니다.
+   - ### 등록된 (registered) 클레임,
+     - 서비스에서 필요한 정보들이 아닌, 토큰에 대한 정보들을     담기위하여 이름이 이미 정해진 클레임들이다.
+   - ### 공개 (public) 클레임,
+     - 공개 클레임들은 충돌이 방지된 (collision-resistant) 이름을 가지고 있어야 합니다. 충돌을 방지하기 위해서는, 클레임 이름을 URI 형식으로 짓습니다.
+   - ### 비공개 (private) 클레임
+     - 양 측간에 (보통 클라이언트 <->서버) 협의하에 사용되는 클레임 이름들입니다   
+
+    ```py
+    {
+    "iss": "velopert.com",
+    "exp": "1485270000000",
+    "https://velopert.com/jwt_claims/is_admin": true,
+    "userId": "11028373727102",
+    "username": "velopert"
+    }
+    # example
+    ``` 
+
+## Signature
+JSON Web Token 의 마지막 부분은 signature 입니다.   
+이 서명은 헤더의 인코딩값과, 정보의 인코딩값을 합친후 주어진 비밀키로 해쉬를 하여 생성합니다.   
+
+따라서 JWT를 만들기 위해서는 미리 비밀 키를 지정을 하고, 그 비밀키로 해쉬를 하고 Token을 생성합니다.
+
+```py
+"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ2ZWxvcGVydC5jb20iLCJleHAiOiIxNDg1MjcwMDAwMDAwIiwiaHR0cHM6Ly92ZWxvcGVydC5jb20vand0X2NsYWltcy9pc19hZG1pbiI6dHJ1ZSwidXNlcklkIjoiMTEwMjgzNzM3MjcxMDIiLCJ1c2VybmFtZSI6InZlbG9wZXJ0In0.WE5fMufM0NDSVGJ8cAolXGkyB5RmYwCto1pQwDIqo2w"
+# example
 ```
+
+이 값을  https://jwt.io/ 에 넣고 debug 해보세요. 
+- 브라우저 상에서 JWT 토큰을 검증하고 생성 할 수 있게 해주는 디버거 서비스입니다
 
 
